@@ -1,34 +1,50 @@
 import matplotlib.pyplot as plt
-import numpy as np
-import scipy.stats as stats
+import json
+import statistics
+import math
 
-infile = "input_file.txt"
-outfile = "cleaned_file.json"
+# read input, parse linecound words
+wc = []
+with open("input_file.txt", "r") as fp:
+    while True:
+        line = fp.readline()
+        if not line:
+            break
+        review = json.loads(line)
+        text = review["text"]
+        wc.append(len(text.split(" ")))
+        lenwc = len(wc)
+        if lenwc % 10 == 0:
+            print(f"read {lenwc} lines")
 
-delete_list1 = [" a ", " in ", " of ", " the ", " at ", " line ", " get "]
-delete_list2 = [";", ":", ".", ",", "?", "!", "(", ")", "}", "{", "\"", "\'"]
-dict_word = {};
-with open(infile) as fin, open(outfile, "w+") as fout:
-    for line in fin:
-        for word in delete_list1:
-            line = line.replace(word, " ")
-        for word in delete_list2:
-            line = line.replace(word, "")
-        fout.write(line)
-        split_word = line.split();
-        for word in split_word:
-            if word in dict_word:
-                dict_word[word] = dict_word[word]+1
-            else:
-                dict_word[word] = 1
+#print(wc)
 
-for k, v in dict_word.items():
-    print(k, v)
+wcmax = max(wc)
+wcmin = min(wc)
+wcmean = statistics.mean(wc)
 
-noise = np.random.normal(0, 1, (1000, ))
-density = stats.gaussian_kde(noise)
-n, x, _ = plt.hist(noise, bins=np.linspace(-3, 3, 50),
-                   histtype=u'step', density=True)
-plt.plot(x, density(x))
+# find variance
+wcvar = 0
+for w in wc:
+    wcvar += (w - wcmean) ** 2
+wcvar = wcvar / len(wc)
+wcstddev = math.sqrt(wcvar)
+
+print(wcmax, wcmin, wcmean, wcvar, wcstddev)
+
+
+# generate gaussian distribution
+dist=[]
+wcmiddle = (wcmax - wcmin) / 2
+for i in range(wcmin, wcmax):
+    normval = 1 / (wcstddev * math.sqrt(2*math.pi)) * math.exp(-1/2 * (((i - wcmean)/wcstddev)**2))
+    dist.append(normval)
+
+normmax = max(dist)
+print(normmax)
+dist = [normval * (600 / normmax) for normval in dist]
+plt.plot(range(wcmin, wcmax), dist)
+
+n, x, _ = plt.hist(wc)
 plt.savefig('02.review.length.png')
 plt.show()
